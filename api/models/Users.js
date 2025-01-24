@@ -61,6 +61,15 @@ const UserSchema = mongoose.Schema(
         // },
         ExpiryPasswordResetToken: {
             type: Date,
+        },
+        img:{
+            type: String
+        },
+        address:{
+            type: String
+        },
+        phone: {
+            type: String
         }
     },
     {

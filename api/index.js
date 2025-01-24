@@ -19,7 +19,7 @@ const app = express();
 
 dotenv.config();
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173',"http://localhost:5174"],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     optionsSuccessStatus: 204,
@@ -50,7 +50,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/product",productRouter)
 app.use("/api/orders",orderRouter)
 app.use("/api/carts",cartRouter)
-app.use("/api/checkout",stripeRoute)
+app.use("/api",stripeRoute)
 
 
 app.get("/", (request, response) => {

@@ -1,5 +1,11 @@
 import styled from "styled-components";
 import { mobile } from "../responsive";
+import axios from "axios"
+import { useState } from "react";
+import { ToastContainer, toast } from 'react-toastify';
+import { signupSuccess, signupFailure } from "../redux/userRedux";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const Container = styled.div`
   width: 100vw;
@@ -55,22 +61,66 @@ const Button = styled.button`
 `;
 
 const Register = () => {
+
+  const [formData, setFormData] = useState({
+    userName:"",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    cPassword: "",
+  });
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleSubmit = async(e)=>{
+    e.preventDefault()
+    console.log(formData)
+
+    try {
+      const userData = await axios.post("http://localhost:4000/api/auth/signup",formData);
+      dispatch(signupSuccess(userData.data))
+      toast.success(userData.data.message);
+      localStorage.setItem('Usertoken', userData.data.token);
+      setTimeout(()=>{
+        navigate("/otp-verification")
+      },2000)
+
+      console.log("userData",userData.data);
+    } catch (error) {
+      console.log("error",error);
+      dispatch(signupFailure())
+      toast.error(error.response?.data?.message);
+      
+    }
+  }
+
+
   return (
     <Container>
+      <ToastContainer  />
       <Wrapper>
         <Title>CREATE AN ACCOUNT</Title>
         <Form>
-          <Input placeholder="name" />
-          <Input placeholder="last name" />
-          <Input placeholder="username" />
-          <Input placeholder="email" />
-          <Input placeholder="password" />
-          <Input placeholder="confirm password" />
+          <Input onChange={handleChange} name="firstName"  value={formData.firstName} placeholder="name" />
+          <Input onChange={handleChange}  name="lastName" value={formData.lastName} placeholder="last name" />
+          <Input onChange={handleChange} name="userName" value={formData.userName} placeholder="username" />
+          <Input onChange={handleChange} name="email" value={formData.email} placeholder="email" />
+          <Input type="password" onChange={handleChange} name="password" value={formData.password} placeholder="password" />
+          <Input type="password" onChange={handleChange} name="cPassword" value={formData.cPassword} placeholder="confirm password" />
           <Agreement>
             By creating an account, I consent to the processing of my personal
             data in accordance with the <b>PRIVACY POLICY</b>
           </Agreement>
-          <Button>CREATE</Button>
+          <Button onClick={handleSubmit}>CREATE</Button>
         </Form>
       </Wrapper>
     </Container>

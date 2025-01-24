@@ -266,7 +266,7 @@ export const forgotPasswordEmail = async (req, res) => {
                 // console.log(process.env.JWT_SECRET_KEY, "===>> secretKey")
                 const token = GenerateToken({ data: secret, expiresIn: '30m' });
                 // return res.send(token)
-                const link = `${process.env.WEB_LINK}/api/auth/resetPassword/${user._id}/${token}`;
+                const link = `http://localhost:5173/change-password/${user._id}/${token}`;
 
                 const transporter = nodemailer.createTransport({
                     service: 'gmail',
@@ -330,11 +330,13 @@ export const forgotPasswordEmail = async (req, res) => {
 };
 export const resetPasswordEmail = async (req, res) => {
     console.log("resetPasswordEmail controller")
+    console.log("req.body",req.body)
     try {
         const { newPassword, confirmNewPassword, token } = req.body;
         if (newPassword && confirmNewPassword && token) {
             const { result } = verify(token, process.env.JWT_SECRET_KEY);
-            const userId = result.slice(0, result.length - process.env.JWT_SECRET_KEY.length);
+            console.log("result",result)
+            const userId = result._id
             const user = await Users.findById(userId);
             // return res.send(user)
             if (user) {

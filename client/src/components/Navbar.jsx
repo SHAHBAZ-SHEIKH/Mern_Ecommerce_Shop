@@ -4,7 +4,9 @@ import React from "react";
 import styled from "styled-components";
 import { mobile } from "../responsive";
 import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../redux/userRedux";
+import { useDispatch } from "react-redux";
 
 const Container = styled.div`
   height: 70px;
@@ -71,6 +73,23 @@ const MenuItem = styled.div`
 const Navbar = () => {
   const quantity = useSelector(state=>state.cart.quantity)
   console.log("Quantity",quantity)
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+
+  const logOutHandle = ()=>{
+    console.log("logout");
+    localStorage.removeItem("persist:root");
+    localStorage.removeItem("Usertoken");
+    dispatch(logout());
+    setTimeout(()=>{
+      navigate("/login")
+    },1000)
+
+    
+  }
+
+
   return (
     <Container>
       <Wrapper>
@@ -82,11 +101,12 @@ const Navbar = () => {
           </SearchContainer>
         </Left>
         <Center>
-          <Logo>LAMA.</Logo>
+          <Logo>Bazario.</Logo>
         </Center>
         <Right>
-          <MenuItem>REGISTER</MenuItem>
-          <MenuItem>SIGN IN</MenuItem>
+          <Link style={{ textDecoration: "none" , color: "black"}} to={"/register"}><MenuItem>REGISTER</MenuItem></Link>
+          <Link style={{ textDecoration: "none" , color: "black"}} to="/login"><MenuItem>SIGN IN</MenuItem></Link>
+          <MenuItem onClick={logOutHandle} style={{ textDecoration: "none" , color: "black"}}>LogOut</MenuItem>
           <Link to="/cart">
           <MenuItem>
             <Badge badgeContent={quantity} color="primary">

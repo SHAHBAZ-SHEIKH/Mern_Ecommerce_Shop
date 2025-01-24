@@ -77,30 +77,32 @@ orderRouter.get("/",verifyTokenAndAdmin,async(req,res)=>{
 // GET MONTHLY INCOME
 
 orderRouter.get("/income", verifyTokenAndAdmin, async (req, res) => {
-    const date = new Date();
-    const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
-    const previousMonth = new Date(new Date().setMonth(lastMonth.getMonth() - 1));
-  
-    try {
-      const income = await Order.aggregate([
-        { $match: { createdAt: { $gte: previousMonth } } },
-        {
-          $project: {
-            month: { $month: "$createdAt" },
-            sales: "$amount",
-          },
+  const date = new Date();
+  const lastMonth = new Date(date.setMonth(date.getMonth() - 1)); // Start of last month
+
+  try {
+    const income = await Order.aggregate([
+      // Match orders created after 'lastMonth'
+      { $match: { createdAt: { $gte: lastMonth } } },
+      // Sum all amounts
+      {
+        $group: {
+          _id: null, // No grouping by month, calculate total directly
+          totalIncome: { $sum: "$amount" },
         },
-        {
-          $group: {
-            _id: "$month",
-            total: { $sum: "$sales" },
-          },
-        },
-      ]);
-      res.status(200).json(income);
-    } catch (err) {
-      res.status(500).json(err);
-    }
-  });
+      },
+    ]);
+
+    // Check if income exists, otherwise return 0
+    const totalIncome = income.length > 0 ? income[0].totalIncome : 0;
+
+    res.status(200).json({ totalIncome });
+  } catch (err) {
+    console.error(err); // Log error for debugging
+    res.status(500).json({ error: "Failed to calculate total income" });
+  }
+});
+
+
 export default orderRouter;
 

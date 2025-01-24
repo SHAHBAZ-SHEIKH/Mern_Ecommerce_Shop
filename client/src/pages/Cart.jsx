@@ -1,5 +1,5 @@
 import { Add, Key, Remove } from "@mui/icons-material";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components";
 import Announcement from "../components/Announcement";
 import Footer from "../components/Footer";
@@ -9,11 +9,16 @@ import StripeCheckout from "react-stripe-checkout";
 import { useEffect, useState } from "react";
 import { userRequest } from "../requestMethod.js";
 import { useNavigate } from "react-router-dom";
+import {loadStripe} from '@stripe/stripe-js';
+import axios from "axios";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import {clearCart} from "../redux/cartRedux"
 
+//const KEY = import.meta.env.VITE_STRIPE_KEY;
+// const STRIP_KEY = "pk_test_51QjPDsKvAjGuhZAarI4WG5mElQOX3NQqb4VnLj7BL6uOPxOZNUXX1nFgVjkJnLJmvuwWjjm0oiNUVyJUgwXs3j3P00ggdUsZEh"
 
-const KEY = import.meta.env.VITE_STRIPE_KEY;
-
-console.log("KEY",KEY)
+//console.log("KEY",KEY)
 
 
 const Container = styled.div``;
@@ -165,36 +170,98 @@ const Button = styled.button`
 
 const Cart = () => {
   const cart = useSelector((state) => state.cart);
+  const user = useSelector((state) => state.user?.currentUser?.data);
+  
   const [stripeToken, setStripeToken] = useState(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch()
 
-  const onToken = (token) => {
-    console.log("Token",token)
-    setStripeToken(token);
-  };
+  console.log("cart", cart);
+  console.log("user", user);  
+
+  // const onToken = async (token) => {
+  //   console.log("Token",token)
+  //   setStripeToken(token);
+  // };
 
 
 
-  console.log("stripeToken",stripeToken)
-
-  useEffect(() => {
-    const makeRequest = async () => {
-      try {
-        const res = await userRequest.post("/checkout/payment", {
-          tokenId: stripeToken.id,
-          amount: 500,
-        });
-        navigate("/success", {
-          stripeData: res.data,
-          products: cart, });
-      } catch(err){
-        console.log(err)
+  //console.log("stripeToken",stripeToken)
+  const makePayment = async () => {
+    try {
+      // Initialize Stripe
+      const stripe = await loadStripe('pk_test_51QjPDsKvAjGuhZAarI4WG5mElQOX3NQqb4VnLj7BL6uOPxOZNUXX1nFgVjkJnLJmvuwWjjm0oiNUVyJUgwXs3j3P00ggdUsZEh');
+  
+      // Create a checkout session (existing code for Stripe)
+      const productItem = {
+        products: cart.products,
+      };
+  
+      const headers = {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${localStorage.getItem('Usertoken')}` // Include token
+      };
+  
+      const res = await axios.post('http://localhost:4000/api/create-checkout-session', productItem, { headers });
+      const session = res.data;
+      
+      // Send the order to the backend
+      const orderData = {
+        userId: user._id, // Replace this with the actual userId dynamically if needed
+        products: cart.products.map((product) => ({
+          productId: product._id,
+          quantity: product.quantity,
+        })),
+        amount: cart.total,
+        address: "Karachi", // Replace with actual address dynamically if needed
+      };
+  
+      const response = await axios.post('http://localhost:4000/api/orders', orderData, { headers });
+      //  // Add token in headers
+      console.log("response", response.data);
+      dispatch(clearCart())
+  
+      // Redirect to Stripe checkout
+      const result = await stripe.redirectToCheckout({ sessionId: session.id });
+      
+      if (result.error) {
+        console.error(result.error.message);
+        toast.error(result.error.message);
       }
-    };
-    stripeToken && makeRequest();
-  }, [stripeToken, cart.total, navigate]);
+    } catch (error) {
+      console.error("Error during payment process:", error);
+      toast.error(error.message);
+    }
+  };
+  
+
+  
+
+  // useEffect(() => {
+  //   const makeRequest = async () => {
+  //     try {
+  //       console.log("Request data:", {
+  //         tokenId: stripeToken.id,
+  //         amount: cart.total * 100,
+  //       });
+  //       const res = await userRequest.post("/checkout/payment", {
+  //         tokenId: stripeToken.id,
+  //         amount: 500,
+  //       });
+  //       navigate("/success", {
+  //         stripeData: res.data,
+  //         products: cart, });
+  //     } catch(err){
+  //       console.log(err)
+  //     }
+  //   };
+  //   stripeToken && makeRequest();
+  // }, [stripeToken, cart.total, navigate]);
+
+
   return (
     <Container>
+      <ToastContainer />
       <Navbar />
       <Announcement />
       <Wrapper>
@@ -258,18 +325,9 @@ const Cart = () => {
               <SummaryItemText>Total</SummaryItemText>
               <SummaryItemPrice>$ {cart.total}</SummaryItemPrice>
             </SummaryItem>
-            <StripeCheckout
-              name="Lama Shop"
-              image="https://avatars.githubusercontent.com/u/1486366?v=4"
-              billingAddress
-              shippingAddress
-              description={`Your total is $${cart.total}`}
-              amount={cart.total * 100}
-              token={onToken}
-              stripeKey="pk_test_51QjPDsKvAjGuhZAarI4WG5mElQOX3NQqb4VnLj7BL6uOPxOZNUXX1nFgVjkJnLJmvuwWjjm0oiNUVyJUgwXs3j3P00ggdUsZEh"
-            >
-              <Button>CHECKOUT NOW</Button>
-            </StripeCheckout>
+            
+              <Button onClick={makePayment}>CHECKOUT NOW</Button>
+            
           </Summary>
         </Bottom>
       </Wrapper>
